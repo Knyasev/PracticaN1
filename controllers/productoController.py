@@ -3,7 +3,7 @@ from app import db
 import uuid
 from models.persona import Persona
 from models.rol import Rol
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,timezone
 class ProductoController:
     def listar(self):
         return Producto.query.all()
@@ -62,8 +62,8 @@ class ProductoController:
         
 
     def listarporCaducar(self):
-            fecha_caducar = datetime.now() + timedelta(days=5)
-            productos_por_caducar = Producto.query.filter(Producto.fecha_venc >= fecha_caducar).all()
+            fecha_caducar = datetime.now(timezone.utc)+ timedelta(days=5)
+            productos_por_caducar = Producto.query.filter(Producto.fecha_venc < fecha_caducar).all()
             for producto in productos_por_caducar:
                 producto.estado = producto.estado.POR_CADUCAR  
                 producto.stock =0
@@ -71,6 +71,7 @@ class ProductoController:
             return productos_por_caducar
     
     def listarStock(self):
+        Producto.query.filter_by(nombre="leche").all()
         total_stock = Producto.query.filter_by(stock=1).count()
         return total_stock
     
