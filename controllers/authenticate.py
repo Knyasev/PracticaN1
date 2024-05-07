@@ -16,7 +16,7 @@ def token_required(f):
             token = request.headers['X-Access-Tokens']
         if not token:
             return make_response(
-                jsonify({"msg": "ERROR", "code": 401, "datos":{"error":Erros.error["-6"]}}),
+                jsonify({"msg": "ERROR", "code": 401, "datos":{"error":Error.error["-6"]}}),
                 401
             )
         try:
@@ -24,12 +24,12 @@ def token_required(f):
             user = Cuenta.query.filter_by(external_id = data['external']).first()
             if not user:
                 return make_response(
-                    jsonify({"msg": "ERROR", "code": 401, "datos":{"error":Erros.error["-7"]}}),
+                    jsonify({"msg": "ERROR", "code": 401, "datos":{"error":Error.error["-7"]}}),
                     401
                 )
         except:
             return make_response(
-                    jsonify({"msg": "ERROR", "code": 401, "datos":{"error":Erros.error["-7"]}}),
+                    jsonify({"msg": "ERROR", "code": 401, "datos":{"error":Error.error["-7"]}}),
                     401
             )
         return f(*args, **kwargs)

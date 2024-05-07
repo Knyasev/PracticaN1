@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, make_response, request
 from controllers.productoController import ProductoController
 from controllers.utils.errors import Error
 from flask_expects_json import expects_json
+from controllers.authenticate import token_required
 api_producto = Blueprint('api_producto', __name__)
 
 censoC= ProductoController()
@@ -28,6 +29,7 @@ censo_persona_schema = {
 
 
 @api_producto.route("/producto")
+@token_required
 def listar():
     return make_response(
         jsonify({"msg": "OK", "code": 200, "datos": ([i.serialize for i in censoC.listar()])}),
@@ -35,16 +37,15 @@ def listar():
     )
 
 @api_producto.route("/producto/caducados")
+@token_required
 def listarCaducados():
     return make_response(
         jsonify({"msg": "OK", "code": 200, "datos": ([i.serialize for i in censoC.listar_productos_caducados()])}),
         200
     )
 
-
-
-
 @api_producto.route('/productos/por_caducar')
+@token_required
 def productos_por_caducar():
     productos_serializados = [producto.serialize for producto in censoC.listarporCaducar()]
 
