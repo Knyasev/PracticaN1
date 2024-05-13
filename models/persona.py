@@ -12,8 +12,7 @@ class Persona(db.Model):
     #relacion de 1 a muchos 
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
-    producto =  db.relationship('Producto', backref='persona_producto', lazy=True)
-
+    lote =  db.relationship('Lote', backref='persona_lote', lazy=True)
     @property
     def serialize(self):
         return {

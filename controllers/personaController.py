@@ -4,6 +4,9 @@ from models.cuenta import Cuenta
 from app import db
 from datetime import datetime, timedelta,timezone
 from flask import current_app
+from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
+
 import jwt
 import uuid
 
@@ -35,6 +38,8 @@ class PersonaController:
         else:
             return -1
         
+    
+    
     def guardar_cuenta(self,data):
         rol = Rol.query.filter_by(nombre="ADMINISTRADOR").first()
         persona = Persona()
@@ -43,7 +48,6 @@ class PersonaController:
             if cuenta:
                 return -2
             else:
-
                 persona.external_id = uuid.uuid4()
                 persona.apellido = data.get("apellido")
                 persona.nombre = data.get("nombre")
@@ -52,7 +56,8 @@ class PersonaController:
                 db.session.commit()
                 cuenta = Cuenta()
                 cuenta.usuario = data.get("correo")
-                cuenta.clave = data.get("clave")
+                # Encriptar la clave
+                cuenta.clave = generate_password_hash(data.get("clave"))
                 cuenta.persona_id = persona.id
                 cuenta.external_id = str(uuid.uuid4())
                 db.session.add(cuenta)
@@ -117,15 +122,16 @@ class PersonaController:
                 return cuenta
         return False
         
+
     def inicio_sesion(self, data):
         cuentaA = Cuenta.query.filter_by(usuario = data.get('usuario')).first()
         if cuentaA:
-            # TODO encriptar
-            if cuentaA.clave == data["clave"]:
+            # Verificar la clave
+            if check_password_hash(cuentaA.clave, data["clave"]):
                 token = jwt.encode(
                     {
                         "external": cuentaA.external_id,
-                        "expiracion": (datetime.utcnow()+ timedelta(minutes=30)).isoformat()
+                        "expiracion": (datetime.now(timezone.utc)+ timedelta(minutes=30)).isoformat()
                     }, 
                     key = current_app.config["SECRET_KEY"],
                     algorithm="HS512"

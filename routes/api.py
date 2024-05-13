@@ -4,4 +4,8 @@ from models.rol import Rol
 from models.persona import Persona
 from models.producto import Producto
 from models.cuenta import Cuenta
+from models.lote import Lote
+from models.detalleFactura import DetalleFactura
+from models.factura import Factura
+
 api = Blueprint('api', __name__)

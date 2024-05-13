@@ -47,20 +47,36 @@ def listarCaducados():
 @api_producto.route('/productos/por_caducar')
 @token_required
 def productos_por_caducar():
-    productos_serializados = [producto.serialize for producto in censoC.listarporCaducar()]
+    productos_por_caducar_por_lote = censoC.listarporCaducar()
+    return jsonify([i.serialize for i in censoC.listar_productos_por_caducar()]), 200
 
+@api_producto.route("/producto/listar/caducados")
+def listar_productos_caducados():
+    productos = censoC.listarCaducados()
+    return make_response(
+        jsonify({"msg": "OK", "code": 200, "datos": [i.serialize for i in censoC.listar_productos_caducados()]}),
+        200
+    )
+
+@api_producto.route('/productos/buenos')
+@token_required
+def productos_buenos():
+    productos_serializados = [producto.serialize for producto in censoC.listar_productos_buenos()]
     return jsonify(productos_serializados), 200
 
 
 @api_producto.route('/registrar/produto', methods=['POST'])
+@token_required
 def registar_producto_persona_route():
     data = request.get_json()
-    persona_id = censoC.registar_producto_persona(data)
-    if persona_id == -1:
+    producto = censoC.registar_producto_persona(data)
+    if producto == -1:
         return jsonify({'error': 'No se encontró la persona con el external_id proporcionado'}), 400
+    elif producto == -2:
+        return jsonify({'error': 'La cantidad de productos ya es igual a la cantidad del lote'}), 400
     else:
-        return jsonify({'persona_id': persona_id}), 200    
-
+        return jsonify({'Datos Guardados': producto.serialize}), 200
+    
 
 @api_producto.route("/producto/<external>")
 def buscar_external(external):
@@ -105,9 +121,4 @@ def desactivar(external_id):
     search = censo.serialize()
     return make_response(jsonify({"msg": "OK", "code": 200, "datos": search}), 200)
 
-
-@api_producto.route('/stock', methods=['GET'])
-def listarStock():
-    total_stock = censoC.listarStock(),
-    return jsonify({'total_stock': total_stock}), 200
 

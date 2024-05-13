@@ -4,29 +4,32 @@ import uuid
 from models.persona import Persona
 from models.rol import Rol
 from datetime import datetime, timedelta,timezone
+from models.lote import Lote    
 class ProductoController:
     def listar(self):
         return Producto.query.all()
     
     def listar_productos_buenos(self):
         return Producto.query.filter_by(estado="BUENO").all()
-    
-    
+        
     def listar_productos_caducados(self):
         return Producto.query.filter_by(estado="CADUCADO").all()
+    
+    def listar_productos_por_caducar(self):
+        return Producto.query.filter_by(estado="POR_CADUCAR").all()
 
     
     def modificar(self, data):
         producto = self.buscar_external(data.get("external_id"))
         if producto:
+            producto.nombre = data.get("nombre")
             producto.fecha_prod = data.get("fecha_prod")
             producto.fecha_venc = data.get("fecha_venc")
-            producto.tipo_prdt = data.get("tipo_prdt")
-            db.session.add(producto)
+            producto.estado = data.get("estado")
+            producto.precio = data.get("precio")
+            producto.status = data.get("status")
             db.session.commit()
             return producto.id
-        else:
-            return -1
 
     def buscar_external(self, external):
         return Producto.query.filter_by(external_id=external).first()    
@@ -40,38 +43,67 @@ class ProductoController:
             return producto.id
         else:
             return -1
-        
 
+        
     def registar_producto_persona(self, data):
-        persona = Persona.query.filter_by(external_id=data.get("external_id")).first()
-        if persona:
-            producto = Producto()  # Crear una nueva instancia de Producto
-            producto.external_id = data.get("producto_id")
-            producto.nombre = data.get("nombre")
+        lote = Lote.query.filter_by(external_id=data.get("extenal_id_lote")).first()
+        if lote:
+            productos_existentes = Producto.query.filter_by(lote_id=lote.id).count()
+            if productos_existentes >= lote.cantidad:
+                return -2  
+            producto = Producto()  
+            producto.external_id = str(uuid.uuid4())
+            producto.nombre = lote.nombre
             producto.fecha_prod = data.get("fecha_prod")
             producto.fecha_venc = data.get("fecha_venc")
-            producto.tipo_prdt = data.get("tipo_prdt")
             producto.estado = data.get("estado")
-            persona.producto.append(producto)
-            producto.stock =+1
+            producto.lote_id= lote.id
+            producto.precio = data.get("precio")
+            producto.status = True
+            producto.stock = lote.cantidad  # Establecer el stock al valor de la cantidad del lote
             db.session.add(producto)
             db.session.commit() 
-            return persona.id
+            return producto
         else:
             return -1
-        
+
 
     def listarporCaducar(self):
-            fecha_caducar = datetime.now(timezone.utc)+ timedelta(days=5)
-            productos_por_caducar = Producto.query.filter(Producto.fecha_venc < fecha_caducar).all()
-            for producto in productos_por_caducar:
-                producto.estado = producto.estado.POR_CADUCAR  
-                producto.stock =0
-                db.session.commit()
-            return productos_por_caducar
+        fecha_caducar = datetime.now(timezone.utc) + timedelta(days=5)
+        lotes = Lote.query.all()
+        productos_por_caducar_por_lote = {}
     
-    def listarStock(self):
-        Producto.query.filter_by(nombre="leche").all()
-        total_stock = Producto.query.filter_by(stock=1).count()
-        return total_stock
+        for lote in lotes:
+            productos_por_caducar = Producto.query.filter(Producto.fecha_venc <= fecha_caducar, Producto.lote_id == lote.id).all()
+            productos_por_caducar_por_lote[lote.nombre] = productos_por_caducar
+    
+            for producto in productos_por_caducar:
+                if producto.status == True:
+                    producto.estado = producto.estado.POR_CADUCAR 
+                    producto.status = False
+                    producto.stock -= len(productos_por_caducar) 
+                else:
+                    producto.estado = producto.estado.POR_CADUCAR
+            db.session.commit()
+        return productos_por_caducar_por_lote
+    
+    def listarCaducados(self):
+        fecha_actual = datetime.now(timezone.utc)
+        lotes = Lote.query.all()
+        productos_caducados_por_lote = {}
+    
+        for lote in lotes:
+            productos_caducados = Producto.query.filter(Producto.fecha_venc < fecha_actual, Producto.lote_id == lote.id).all()
+            productos_caducados_por_lote[lote.nombre] = productos_caducados
+            for producto in productos_caducados:
+                if producto.status == True:
+                    producto.estado = producto.estado.CADUCADO
+                    producto.status = False
+                    producto.stock -= len(productos_caducados) # Reduce el stock del producto en 1
+                else:
+                    producto.estado = producto.estado.CADUCADO
+        db.session.commit()
+    
+        return productos_caducados_por_lote
+    
     
