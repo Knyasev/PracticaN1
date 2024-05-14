@@ -60,7 +60,12 @@ class ProductoController:
             producto.lote_id= lote.id
             producto.precio = data.get("precio")
             producto.status = True
-            producto.stock = lote.cantidad  # Establecer el stock al valor de la cantidad del lote
+    
+            # Sumar las cantidades de todos los lotes con el mismo nombre
+            lotes_mismo_nombre = Lote.query.filter_by(nombre=lote.nombre).all()
+            total_cantidad = sum([lote_mismo.cantidad for lote_mismo in lotes_mismo_nombre])
+            producto.stock = total_cantidad
+    
             db.session.add(producto)
             db.session.commit() 
             return producto
@@ -72,18 +77,26 @@ class ProductoController:
         fecha_caducar = datetime.now(timezone.utc) + timedelta(days=5)
         lotes = Lote.query.all()
         productos_por_caducar_por_lote = {}
-    
+
         for lote in lotes:
             productos_por_caducar = Producto.query.filter(Producto.fecha_venc <= fecha_caducar, Producto.lote_id == lote.id).all()
             productos_por_caducar_por_lote[lote.nombre] = productos_por_caducar
-    
+
             for producto in productos_por_caducar:
-                if producto.status == True:
+                if producto.status == True :
                     producto.estado = producto.estado.POR_CADUCAR 
+                    producto.stock -= len(productos_por_caducar)
                     producto.status = False
-                    producto.stock -= len(productos_por_caducar) 
-                else:
-                    producto.estado = producto.estado.POR_CADUCAR
+                else :
+                    producto.estado = producto.estado.POR
+                    
+
+            # Reducir el stock de los productos buenos y los productos por caducar de todos los lotes con el mismo nombre
+            lotes_mismo_nombre = Lote.query.filter_by(nombre=lote.nombre).all()
+            for lote_mismo_nombre in lotes_mismo_nombre:
+                productos_a_reducir_stock = Producto.query.filter((Producto.estado == "BUENO") | (Producto.id.in_([p.id for p in productos_por_caducar])), Producto.lote_id == lote_mismo_nombre.id).all()
+                for producto in productos_a_reducir_stock:
+                    producto.stock -= len(productos_por_caducar)
             db.session.commit()
         return productos_por_caducar_por_lote
     
@@ -91,19 +104,20 @@ class ProductoController:
         fecha_actual = datetime.now(timezone.utc)
         lotes = Lote.query.all()
         productos_caducados_por_lote = {}
-    
+
         for lote in lotes:
-            productos_caducados = Producto.query.filter(Producto.fecha_venc < fecha_actual, Producto.lote_id == lote.id).all()
-            productos_caducados_por_lote[lote.nombre] = productos_caducados
+            productos_caducados = Producto.query.filter((Producto.fecha_venc < fecha_actual) | (Producto.estado == "POR_CADUCAR"), Producto.lote_id == lote.id).all()
+            productos_caducados_por_lote[lote.nombre] = [{'id': producto.id, 'nombre': producto.nombre, 'estado': producto.estado, 'stock': producto.stock, 'fecha_venc': producto.fecha_venc} for producto in productos_caducados]
+
             for producto in productos_caducados:
+                producto.estado = "CADUCADO"
                 if producto.status == True:
-                    producto.estado = producto.estado.CADUCADO
+                    producto.stock -= 1
                     producto.status = False
-                    producto.stock -= len(productos_caducados) # Reduce el stock del producto en 1
-                else:
-                    producto.estado = producto.estado.CADUCADO
-        db.session.commit()
-    
+            db.session.commit()
+
+        print(productos_caducados_por_lote)  # Imprime el resultado en la consola
         return productos_caducados_por_lote
+    
     
     

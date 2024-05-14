@@ -14,15 +14,17 @@ class LoteController:
     
     def save(self, data):
         lote = Lote()
-        lote.fecha_entrada = data.get("fecha_entrada")
-        lote.codigo = data.get("codigo")
-        lote.nombre = data.get("nombre")
-        lote.tipo_prdt = data.get("tipo_prdt")
-        lote.cantidad = data.get("cantidad")
-        lote.external_id = uuid.uuid4()
-        lote.persona_id = data.get("persona_id")
-        db.session.add(lote)
-        db.session.commit()
+        persona = Persona.query.filter_by(external_id=data.get("persona_id")).first()
+        if persona :
+            lote.fecha_entrada = data.get("fecha_entrada")
+            lote.codigo = data.get("codigo")
+            lote.nombre = data.get("nombre")
+            lote.tipo_prdt = data.get("tipo_prdt")
+            lote.cantidad = data.get("cantidad")
+            lote.external_id = uuid.uuid4()
+            lote.persona_id = persona.id
+            db.session.add(lote)
+            db.session.commit()
         return lote.id
     
     def modificar(self, data):
