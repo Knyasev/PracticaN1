@@ -6,5 +6,7 @@ class Error:
         "-4": "Motivo no encontrado",
         "-5": "Cuenta no encontrada",
         "-6": "Token no existe",
-        "-7": "Token no valido"
+        "-7": "Token no valido",
+        "-8": "Persona no encontrada",
+
     }

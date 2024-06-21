@@ -9,3 +9,6 @@ class EstadoProducto(Enum):
         return {
             'name': self.name
         }
+    @staticmethod
+    def listar ():
+        return [e.value for e in EstadoProducto]

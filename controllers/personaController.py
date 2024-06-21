@@ -140,8 +140,11 @@ class PersonaController:
                 persona = cuenta.getPersona(cuentaA.persona_id)
                 info = {
                     "token": token,
-                    "user": persona.apellido + " " + persona.nombre
+                    "user": persona.apellido + " " + persona.nombre,
+                    "external_id": persona.external_id
+                    
                 }
+                print(persona.external_id)
                 return info
             else:
                 return -5

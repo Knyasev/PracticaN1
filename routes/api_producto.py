@@ -65,11 +65,11 @@ def productos_buenos():
     return jsonify(productos_serializados), 200
 
 
-@api_producto.route('/registrar/produto', methods=['POST'])
+@api_producto.route('/<external_id>/registrar/produto', methods=['POST'])
 @token_required
-def registar_producto_persona_route():
+def registar_producto_persona_route(external_id):
     data = request.get_json()
-    producto = censoC.registar_producto_persona(data)
+    producto = censoC.registar_producto_persona(data,external_id)
     if producto == -1:
         return jsonify({'error': 'No se encontró la persona con el external_id proporcionado'}), 400
     elif producto == -2:
@@ -77,6 +77,26 @@ def registar_producto_persona_route():
     else:
         return jsonify({'Datos Guardados': producto.serialize}), 200
     
+@api_producto.route('/producto/<external_id>/subir_imagen', methods=['POST'])
+@token_required
+def subir_imagen_producto_route(external_id):
+    if 'imagen' not in request.files:
+        return jsonify({'error': 'No se ha enviado ningún archivo'}), 400
+    file = request.files['imagen']
+    if file.filename == '':
+        return jsonify({'error': 'No se ha seleccionado ningún archivo'}), 400
+    if file and allowed_file(file.filename):
+        if file.content_length > 5 * 1024 * 1024:  # 5MB
+            return jsonify({'error': 'El archivo es demasiado grande. Tamaño máximo permitido: 5MB'}), 400
+        resultado = ProductoController().subir_imagen_producto(external_id)
+        return jsonify(resultado)
+    else:
+        return jsonify({'error': 'Tipo de archivo no permitido'}), 400
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS   
 
 @api_producto.route("/producto/<external>")
 def buscar_external(external):
@@ -121,4 +141,10 @@ def desactivar(external_id):
     search = censo.serialize()
     return make_response(jsonify({"msg": "OK", "code": 200, "datos": search}), 200)
 
+@api_producto.route("/producto/listar_estados")
+def listar_estado():
+    return make_response(
+        jsonify({"msg": "OK", "code": 200, "datos": censoC.listar_estado()}),
+        200
+    )
 

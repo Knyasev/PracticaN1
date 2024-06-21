@@ -5,6 +5,10 @@ from models.persona import Persona
 from models.rol import Rol
 from datetime import datetime, timedelta,timezone
 from models.lote import Lote    
+from models.estadoProducto import EstadoProducto
+import os
+from flask import request
+from werkzeug.utils import secure_filename
 class ProductoController:
     def listar(self):
         return Producto.query.all()
@@ -18,6 +22,8 @@ class ProductoController:
     def listar_productos_por_caducar(self):
         return Producto.query.filter_by(estado="POR_CADUCAR").all()
 
+    def listar_estado(self):
+        return [e.value for e in EstadoProducto]
     
     def modificar(self, data):
         producto = self.buscar_external(data.get("external_id"))
@@ -28,7 +34,9 @@ class ProductoController:
             producto.estado = data.get("estado")
             producto.precio = data.get("precio")
             producto.status = data.get("status")
+            db.session.merge(producto)
             db.session.commit()
+            
             return producto.id
 
     def buscar_external(self, external):
@@ -45,8 +53,8 @@ class ProductoController:
             return -1
 
         
-    def registar_producto_persona(self, data):
-        lote = Lote.query.filter_by(external_id=data.get("extenal_id_lote")).first()
+    def registar_producto_persona(self, data,external_id_lote):
+        lote = Lote.query.filter_by(external_id=external_id_lote).first()
         if lote:
             productos_existentes = Producto.query.filter_by(lote_id=lote.id).count()
             if productos_existentes >= lote.cantidad:
@@ -71,7 +79,34 @@ class ProductoController:
             return producto
         else:
             return -1
+        
 
+    
+    def subir_imagen_producto(self, external_id):
+        producto = Producto.query.filter_by(external_id=external_id).first()
+        if producto:
+            if 'imagen' in request.files:
+                file = request.files['imagen']
+                if file.filename == '':
+                    return {'error': 'No se ha seleccionado ningún archivo'}, 400
+                if file:
+                    filename = secure_filename(file.filename)
+                    # Ruta base fuera del backend, por ejemplo, en un directorio 'imagenes' en el mismo nivel que el directorio 'backend'
+                    ruta_base = r'C:\Users\Gonzalez G\Desktop\Wilson Gonzalez\5 Ciclo\Desarrollo de plataformas\PracticaN3\backend'
+                    ruta_imagenes = os.path.join(ruta_base, 'imagenes')
+                    if not os.path.exists(ruta_imagenes):
+                        os.makedirs(ruta_imagenes)
+                    file_path = os.path.join(ruta_imagenes, filename)
+                    file.save(file_path)
+                    # Modificación aquí: guardar solo la parte relativa de la ruta
+                    relative_path = os.path.join('imagenes', filename)
+                    producto.imagen_producto = relative_path
+                    db.session.add(producto)  # Asegúrate de agregar el objeto modificado a la sesión.
+                    db.session.commit()
+                    return {'mensaje': 'Imagen subida correctamente'}, 200
+            return {'error': 'Archivo no encontrado'}, 400
+        else:
+            return {'error': 'Producto no encontrado'}, 404
 
     def listarporCaducar(self):
         fecha_caducar = datetime.now(timezone.utc) + timedelta(days=5)
@@ -88,7 +123,7 @@ class ProductoController:
                     producto.stock -= len(productos_por_caducar)
                     producto.status = False
                 else :
-                    producto.estado = producto.estado.POR
+                    producto.estado = producto.estado.POR_CADUCAR
                     
 
             # Reducir el stock de los productos buenos y los productos por caducar de todos los lotes con el mismo nombre

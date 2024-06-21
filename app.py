@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 import pymysql
+
 
 pymysql.install_as_MySQLdb()
 import MySQLdb
@@ -25,6 +26,10 @@ def create_app():
         app.register_blueprint(api_rol)
         app.register_blueprint(api_producto)
         app.register_blueprint(api_lote)
+
+        @app.route('/imagenes/<filename>')
+        def imagenes(filename):
+            return send_from_directory('imagenes', filename)
         # Creacion de tablas en la base de datos
         db.create_all()
         #db.drop_all()

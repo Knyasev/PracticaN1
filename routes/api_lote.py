@@ -15,11 +15,11 @@ schema = {
         'nombre': {'type': 'string'},
         'tipo_prdt': {'type': 'string'},
         'cantidad': {'type': 'integer'},
+
     },
-    'required': ['fecha_entrada', 'codigo', 'nombre', 'tipo_prdt', 'cantidad']}
+    'required': ['fecha_entrada', 'codigo', 'nombre', 'tipo_prdt', 'cantidad']
 
-
-
+}
 @api_lote.route("/lote")
 @token_required
 def listar():
@@ -34,31 +34,37 @@ def listar():
 def save():
     data = request.get_json()
     lote_id = loteC.save(data)
-    return make_response(
-        jsonify({"msg": "OK", "code": 200, "datos": ([i.serialize for i in loteC.listar()])}),
-        200
-    )
+    if lote_id>=0:
+        # Si el lote se guardó correctamente, devolver la lista de lotes actualizada
+        return make_response(
+            jsonify({"msg": "Lote registrado con éxito", "code": 200, "datos": ([i.serialize for i in loteC.listar()])}),
+            200
+        )
+    else:
+        # Si hubo un error al guardar el lote, devolver un mensaje de error
+        return make_response(
+            jsonify({"msg": "Error al registrar el lote", "code": 400}),
+            400
+        )
+@api_lote.route("/lote/<external_id>")
+@token_required
+def buscar_external(external_id):
+    lote = loteC.buscar_external(external_id)
+    if lote:
+        # Devuelve el diccionario 'lote' directamente sin llamar a .serialize()
+        return make_response(jsonify({"msg": "OK", "code": 200, "datos": lote.serialize}), 200)
+    else:
+        return make_response(jsonify({"msg": "Error", "code": 404, "datos": {"error": "Persona no encontrada"}}), 404)
 
-@api_lote.route("/producto/<external>")
-def buscar_external(external):
-    search = loteC.buscar_external(external)
-    if search is not None:
-        search = search.serialize()
-    return make_response(
-        jsonify({"msg": "OK", "code": 200, "datos": [] if search is None else search}),
-        200
-    )
 
-
-
-@api_lote.route("/producto/modificar/<external>", methods=['POST'])
+@api_lote.route("/lote/<external>", methods=['POST'])
 @token_required
 @expects_json(schema)
 def modificar(external):
     data = request.get_json()
     data['external_id'] = external
     id = loteC.modificar(data)
-    censo = loteC.buscar_external(external)
+    lote = loteC.buscar_external(external)
     if (id >=0):
         return make_response(
             jsonify({"msg": "OK", "code": 200, "datos": "Datos Modificados"}),
@@ -83,3 +89,9 @@ def desactivar(external_id):
     search = censo.serialize()
     return make_response(jsonify({"msg": "OK", "code": 200, "datos": search}), 200)
 
+@api_lote.route("/listar_tiposP", methods=['GET'])
+def listar_estados():
+    return make_response(
+        jsonify({"msg": "OK", "code": 200, "datos": loteC.listar_tiposP()}),
+        200
+    )    

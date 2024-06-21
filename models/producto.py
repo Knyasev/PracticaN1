@@ -10,6 +10,7 @@ class Producto(db.Model):
     estado = db.Column(db.Enum(EstadoProducto), nullable=False)
     status = db.Column(db.Boolean, default=True)
     stock = db.Column(db.Integer,default=0)
+    imagen_producto = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
     external_id = db.Column(db.String(60), default=str(uuid.uuid4()),nullable=False)
@@ -28,5 +29,6 @@ class Producto(db.Model):
             'precio': self.precio,
             'stock': self.stock,
             'lote': self.lote.cantidad if self.lote else None,
-            'status': self.status
+            'status': self.status,
+            'imagen_producto': self.imagen_producto
         }

@@ -23,3 +23,5 @@ class Config:
     SQLALCHEMY_ECHO = True
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = 'enable'
+
+    IMAGENES = environ.get('IMAGENES')
